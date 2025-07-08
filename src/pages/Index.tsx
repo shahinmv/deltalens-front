@@ -1,7 +1,6 @@
 import MarketStats from "@/components/MarketStats";
 import CryptoChart from "@/components/CryptoChart";
-import PortfolioCard from "@/components/PortfolioCard";
-import CryptoList from "@/components/CryptoList";
+import ChatBox from "@/components/ChatBox";
 
 const Index = () => {
   return (
@@ -14,16 +13,14 @@ const Index = () => {
         
         <MarketStats />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
             <CryptoChart />
           </div>
           <div>
-            <PortfolioCard />
+            <ChatBox />
           </div>
         </div>
-        
-        <CryptoList />
       </div>
     </div>
   );
