@@ -1,6 +1,7 @@
 import MarketStats from "@/components/MarketStats";
 import CryptoChart from "@/components/CryptoChart";
 import ChatBox from "@/components/ChatBox";
+import NewsBox from "../components/NewsBox";
 
 const Index = () => {
   return (
@@ -16,9 +17,15 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
             <CryptoChart />
+            <div className="glass-card p-6 rounded-lg mt-8 h-[500px]" />
           </div>
           <div>
             <ChatBox />
+            <div className="mt-8">
+              <div className="h-[500px]">
+                <NewsBox />
+              </div>
+            </div>
           </div>
         </div>
       </div>

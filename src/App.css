@@ -40,3 +40,19 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-skeleton {
+  background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.2s infinite linear;
+}

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -40,6 +41,12 @@ export default {
           DEFAULT: "#D2886F",
           foreground: "#FAFAF8",
         },
+        danger: {
+          DEFAULT: "#E57373",
+          foreground: "#FAFAF8",
+        },
+        'text-success': '#7EBF8E',
+        'text-danger': '#E57373',
         muted: {
           DEFAULT: "#605F5B",
           foreground: "#E6E4DD",
