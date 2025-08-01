@@ -22,13 +22,29 @@ const streamLLMResponse = async (userMessage: string, onToken: (token: string) =
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let done = false;
+  let buffer = "";
+  
   while (!done) {
     const { value, done: doneReading } = await reader.read();
     done = doneReading;
     if (value) {
-      const chunk = decoder.decode(value);
-      onToken(chunk);
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+      
+      // Process complete lines
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
+      
+      // Send complete lines
+      if (lines.length > 0) {
+        onToken(lines.join('\n') + (lines.length > 0 ? '\n' : ''));
+      }
     }
+  }
+  
+  // Send any remaining buffer content
+  if (buffer.trim()) {
+    onToken(buffer);
   }
 };
 
@@ -219,27 +235,28 @@ const parseMarkdown = (text: string): JSX.Element => {
       return;
     }
 
-    // Lists
-    if (line.match(/^\s*[-*+]\s/)) {
+    // Lists - be more strict about what constitutes a list
+    if (line.match(/^\s*[-*+]\s+\S/)) {
       flushTable();
       if (currentListType !== 'ul') {
         flushList();
         currentListType = 'ul';
       }
-      const content = line.replace(/^\s*[-*+]\s/, '');
+      const content = line.replace(/^\s*[-*+]\s+/, '');
       currentList.push(
         <li key={currentList.length}>{parseInlineMarkdown(content)}</li>
       );
       return;
     }
 
-    if (line.match(/^\s*\d+\.\s/)) {
+    // More strict numbered list detection - must have content after the space
+    if (line.match(/^\s*\d+\.\s+\S/) && !line.match(/^\s*\d+\.\s*[A-Z][^:]*:$/)) {
       flushTable();
       if (currentListType !== 'ol') {
         flushList();
         currentListType = 'ol';
       }
-      const content = line.replace(/^\s*\d+\.\s/, '');
+      const content = line.replace(/^\s*\d+\.\s+/, '');
       currentList.push(
         <li key={currentList.length}>{parseInlineMarkdown(content)}</li>
       );
