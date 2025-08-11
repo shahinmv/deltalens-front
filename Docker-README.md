@@ -101,11 +101,26 @@ To change the API base URL, you can:
 
 ## Production Deployment
 
-For production deployment:
+### Local Deployment
+For local production deployment:
 
 1. Ensure the API_BASE_URL points to your production backend
 2. Build the production image: `docker build -t deltalens-frontend .`
 3. Run the container: `docker run -p 80:80 deltalens-frontend`
+
+### Railway Deployment
+The Dockerfile is configured to work with Railway's dynamic port assignment:
+
+1. Railway automatically detects the Dockerfile and builds the image
+2. The `start-nginx.sh` script configures nginx to listen on the `$PORT` environment variable
+3. If `PORT` is not set, it defaults to port 80 for local development
+
+**Railway-specific files:**
+- `nginx-railway.conf` - Nginx template with `$PORT` variable
+- `start-nginx.sh` - Startup script that configures the port dynamically
+- `Dockerfile.railway` - Alternative Railway-specific Dockerfile (optional)
+
+The main `Dockerfile` now supports both local and Railway deployment out of the box.
 
 ## Nginx Configuration
 
