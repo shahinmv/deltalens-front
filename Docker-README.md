@@ -125,6 +125,7 @@ Modify `nginx.conf` to customize the Nginx configuration.
 1. **Port conflicts**: Change the port mapping if 80 or 8080 are in use
 2. **Build failures**: Ensure all dependencies are properly listed in package.json
 3. **API connection issues**: Verify the API_BASE_URL in the frontend code
+4. **Dependency resolution errors**: The project uses `--legacy-peer-deps` to resolve React version conflicts with `react-tradingview-widget`
 
 ### Debugging
 

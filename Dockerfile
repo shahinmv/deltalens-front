@@ -7,11 +7,10 @@ WORKDIR /app
 # Copy package files first (for better Docker layer caching)
 COPY package*.json ./
 COPY bun.lockb* ./
+COPY .npmrc ./
 
-# Install dependencies
-# Try bun first, fallback to npm if bun is not available
-RUN npm install -g bun || echo "Bun not available, using npm"
-RUN (bun install --frozen-lockfile) || (npm ci --only=production)
+# Install dependencies with legacy peer deps support
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
