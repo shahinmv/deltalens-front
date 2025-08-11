@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowUpIcon, ArrowDownIcon, TrendingUpIcon } from "lucide-react";
 import Skeleton from "./ui/skeleton";
+import { dashboardAPI } from "@/services/api";
 
 // Define the type for the API response
 type MarketStatsData = {
@@ -39,35 +40,33 @@ const MarketStats = () => {
   const [sentimentError, setSentimentError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/market-stats/")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch market stats");
-        return res.json();
-      })
-      .then((data) => {
+    const fetchMarketStats = async () => {
+      try {
+        const data = await dashboardAPI.getMarketStats();
         setStats(data);
         setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch market stats");
         setLoading(false);
-      });
+      }
+    };
+
+    fetchMarketStats();
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/news-sentiment/")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch news sentiment");
-        return res.json();
-      })
-      .then((data) => {
+    const fetchNewsSentiment = async () => {
+      try {
+        const data = await dashboardAPI.getNewsSentiment();
         setSentiment(data);
         setSentimentLoading(false);
-      })
-      .catch((err) => {
-        setSentimentError(err.message);
+      } catch (err: any) {
+        setSentimentError(err.message || "Failed to fetch news sentiment");
         setSentimentLoading(false);
-      });
+      }
+    };
+
+    fetchNewsSentiment();
   }, []);
 
   if (error) return <div>Error: {error}</div>;

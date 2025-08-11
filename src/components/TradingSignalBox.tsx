@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { dashboardAPI } from "@/services/api";
 
 // Define the type for signal performance
 interface SignalPerformance {
@@ -68,17 +69,10 @@ const TradingSignalBox = () => {
         setLoading(true);
         
         // Fetch both signals and performances
-        const [signalsResponse, performancesResponse] = await Promise.all([
-          fetch("http://localhost:8000/api/iterative-trading-signals/"),
-          fetch("http://localhost:8000/api/signal-performance/")
+        const [signalsData, performancesData] = await Promise.all([
+          dashboardAPI.getTradingSignals(),
+          dashboardAPI.getSignalPerformance()
         ]);
-        
-        if (!signalsResponse.ok || !performancesResponse.ok) {
-          throw new Error("Failed to fetch data");
-        }
-        
-        const signalsData: IterativeTradingSignalResponse = await signalsResponse.json();
-        const performancesData: SignalPerformanceResponse = await performancesResponse.json();
         
         if (signalsData.error) {
           setError(signalsData.error);

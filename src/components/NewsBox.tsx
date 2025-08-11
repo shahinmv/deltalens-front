@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, UIEvent } from "react";
+import { dashboardAPI } from "@/services/api";
 
 // Define the type for a news item
 interface NewsItem {
@@ -28,22 +29,22 @@ const NewsBox = () => {
 
   useEffect(() => {
     if (!hasMore && page !== 1) return;
-    setLoading(true);
-    fetch(`http://localhost:8000/api/news/?page=${page}&page_size=${PAGE_SIZE}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch news");
-        return res.json();
-      })
-      .then((data) => {
+    
+    const fetchNews = async () => {
+      setLoading(true);
+      try {
+        const data = await dashboardAPI.getNews(page, PAGE_SIZE);
         setNews((prev) => [...prev, ...(data.news || [])]);
         setTotal(data.total || 0);
         setHasMore((page * PAGE_SIZE) < (data.total || 0));
         setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch news");
         setLoading(false);
-      });
+      }
+    };
+
+    fetchNews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 

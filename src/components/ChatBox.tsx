@@ -3,6 +3,7 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { dashboardAPI } from "@/services/api";
 
 interface Message {
   id: string;
@@ -12,41 +13,6 @@ interface Message {
   reasoning?: string; // Optional reasoning for AI messages
 }
 
-const streamLLMResponse = async (userMessage: string, onToken: (token: string) => void) => {
-  const response = await fetch("http://localhost:8000/api/llm-stream/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: userMessage }),
-  });
-  if (!response.body) return;
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let done = false;
-  let buffer = "";
-  
-  while (!done) {
-    const { value, done: doneReading } = await reader.read();
-    done = doneReading;
-    if (value) {
-      const chunk = decoder.decode(value, { stream: true });
-      buffer += chunk;
-      
-      // Process complete lines
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
-      
-      // Send complete lines
-      if (lines.length > 0) {
-        onToken(lines.join('\n') + (lines.length > 0 ? '\n' : ''));
-      }
-    }
-  }
-  
-  // Send any remaining buffer content
-  if (buffer.trim()) {
-    onToken(buffer);
-  }
-};
 
 // Helper to parse <think>reasoning</think> and main answer
 function parseAIMessage(text: string): { main: string; reasoning?: string } {
@@ -345,20 +311,32 @@ const ChatBox = () => {
     };
     setMessages((prev) => [...prev, aiMessage]);
     let aiText = "";
-    await streamLLMResponse(userMessage.text, (token) => {
-      aiText += token;
-      // Parse for reasoning and main answer
-      const { main, reasoning } = parseAIMessage(aiText);
+    try {
+      await dashboardAPI.streamLLMResponse(userMessage.text, (token) => {
+        aiText += token;
+        // Parse for reasoning and main answer
+        const { main, reasoning } = parseAIMessage(aiText);
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            ...aiMessage,
+            text: main,
+            reasoning,
+          };
+          return updated;
+        });
+      });
+    } catch (error) {
+      console.error('LLM streaming error:', error);
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           ...aiMessage,
-          text: main,
-          reasoning,
+          text: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
         };
         return updated;
       });
-    });
+    }
     setIsStreaming(false);
   };
 
