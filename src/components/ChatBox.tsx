@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, History, MessageSquare, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { dashboardAPI } from "@/services/api";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { dashboardAPI, conversationAPI, ConversationSession, ConversationMessage } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -309,6 +311,7 @@ const parseMarkdown = (text: string): JSX.Element => {
 };
 
 const ChatBox = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -320,9 +323,109 @@ const ChatBox = () => {
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [showReasoning, setShowReasoning] = useState<{ [id: string]: boolean }>({});
+  
+  // Conversation management state
+  const [conversationSessions, setConversationSessions] = useState<ConversationSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [showHistorySheet, setShowHistorySheet] = useState(false);
+
+  // Load conversation sessions on mount and set up most recent session
+  useEffect(() => {
+    if (user) {
+      loadConversationSessions().then(() => {
+        // If there are existing sessions, load the most recent one
+        // Comment this out if you want to always start fresh
+        // loadMostRecentSession();
+      });
+    }
+  }, [user]);
+
+  const loadMostRecentSession = async () => {
+    if (conversationSessions.length > 0 && !currentSessionId) {
+      const mostRecent = conversationSessions[0]; // Already sorted by updated_at DESC
+      await loadConversationHistory(mostRecent.id);
+    }
+  };
+
+  const loadConversationSessions = async () => {
+    if (!user) return;
+    
+    setIsLoadingSessions(true);
+    try {
+      const data = await conversationAPI.getSessions();
+      setConversationSessions(data.sessions);
+    } catch (error) {
+      console.error('Error loading conversation sessions:', error);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  const loadConversationHistory = async (sessionId: string) => {
+    try {
+      const data = await conversationAPI.getSessionDetail(sessionId);
+      const conversationMessages: Message[] = data.messages.map(msg => ({
+        id: msg.id,
+        text: msg.content,
+        isUser: msg.is_user,
+        timestamp: new Date(msg.created_at),
+        reasoning: msg.reasoning || undefined
+      }));
+      
+      // Add welcome message at the beginning if empty
+      if (conversationMessages.length === 0) {
+        conversationMessages.unshift({
+          id: "welcome",
+          text: "Hello! I'm your Bitcoin AI assistant. Ask me anything about Bitcoin market data, trends, or analysis.",
+          isUser: false,
+          timestamp: new Date(),
+        });
+      }
+      
+      setMessages(conversationMessages);
+      setCurrentSessionId(sessionId);
+      setShowHistorySheet(false);
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+    }
+  };
+
+  const startNewConversation = () => {
+    setMessages([
+      {
+        id: "welcome",
+        text: "Hello! I'm your Bitcoin AI assistant. Ask me anything about Bitcoin market data, trends, or analysis.",
+        isUser: false,
+        timestamp: new Date(),
+      },
+    ]);
+    setCurrentSessionId(null);
+    setShowHistorySheet(false);
+    console.log('Started new conversation');
+  };
+
+  const deleteConversation = async (sessionId: string) => {
+    try {
+      await conversationAPI.deleteSession(sessionId);
+      setConversationSessions(prev => prev.filter(s => s.id !== sessionId));
+      
+      // If this was the current session, start a new one
+      if (currentSessionId === sessionId) {
+        startNewConversation();
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isStreaming) return;
+    
+    console.log('=== SENDING MESSAGE ===');
+    console.log('Current session ID:', currentSessionId);
+    console.log('User authenticated:', !!user);
+    console.log('Message:', inputValue.substring(0, 50) + '...');
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -344,20 +447,36 @@ const ChatBox = () => {
     setMessages((prev) => [...prev, aiMessage]);
     let aiText = "";
     try {
-      await dashboardAPI.streamLLMResponse(userMessage.text, (token) => {
-        aiText += token;
-        // Parse for reasoning and main answer
-        const { main, reasoning } = parseAIMessage(aiText);
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...aiMessage,
-            text: main,
-            reasoning,
-          };
-          return updated;
-        });
-      });
+      await dashboardAPI.streamLLMResponse(
+        userMessage.text, 
+        (token) => {
+          aiText += token;
+          // Parse for reasoning and main answer
+          const { main, reasoning } = parseAIMessage(aiText);
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...aiMessage,
+              text: main,
+              reasoning,
+            };
+            return updated;
+          });
+        },
+        currentSessionId || undefined,
+        (sessionId) => {
+          // Set the session ID when received from backend
+          console.log('Session ID received from backend:', sessionId);
+          console.log('Current session ID before:', currentSessionId);
+          setCurrentSessionId(sessionId);
+          console.log('New session set:', sessionId);
+        }
+      );
+      
+      // Refresh sessions list after sending a message (to get updated titles/counts)
+      if (user) {
+        loadConversationSessions();
+      }
     } catch (error) {
       console.error('LLM streaming error:', error);
       setMessages((prev) => {
@@ -380,7 +499,85 @@ const ChatBox = () => {
 
   return (
     <div className="glass-card p-6 rounded-lg h-[500px] flex flex-col animate-fade-in">
-      <h2 className="text-xl font-semibold mb-4">AI Chat</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">AI Chat</h2>
+        {user && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startNewConversation}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              New
+            </Button>
+            <Sheet open={showHistorySheet} onOpenChange={setShowHistorySheet}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  History
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80">
+                <SheetHeader>
+                  <SheetTitle>Conversation History</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  {isLoadingSessions ? (
+                    <div className="text-center py-4">Loading...</div>
+                  ) : conversationSessions.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No conversations yet
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[calc(100vh-120px)]">
+                      <div className="space-y-2">
+                        {conversationSessions.map((session) => (
+                          <div
+                            key={session.id}
+                            className={`p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors ${
+                              currentSessionId === session.id ? 'bg-muted border-primary' : ''
+                            }`}
+                          >
+                            <div
+                              className="flex items-start justify-between"
+                              onClick={() => loadConversationHistory(session.id)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium truncate">
+                                    {session.title}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {session.message_count} messages • {new Date(session.updated_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-2 p-1 h-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteConversation(session.id);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        )}
+      </div>
       
       <ScrollArea className="flex-1 mb-4">
         <div className="space-y-4">
@@ -435,7 +632,7 @@ const ChatBox = () => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Ask about Bitcoin..."
+          placeholder={user ? "Ask about Bitcoin..." : "Login to save conversation history"}
           className="flex-1"
           disabled={isStreaming}
         />
@@ -443,6 +640,12 @@ const ChatBox = () => {
           <Send className="w-4 h-4" />
         </Button>
       </div>
+      
+      {currentSessionId && (
+        <div className="text-xs text-muted-foreground mt-2 text-center">
+          Conversation saved • {conversationSessions.find(s => s.id === currentSessionId)?.title}
+        </div>
+      )}
     </div>
   );
 };

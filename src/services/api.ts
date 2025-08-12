@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://deltalens-back-production.up.railway.app';
+// const API_BASE_URL = 'https://deltalens-back-production.up.railway.app';
+const API_BASE_URL = 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -145,15 +146,23 @@ export const dashboardAPI = {
     return response.data;
   },
 
-  streamLLMResponse: async (userMessage: string, onToken: (token: string) => void) => {
+  streamLLMResponse: async (
+    userMessage: string, 
+    onToken: (token: string) => void, 
+    sessionId?: string,
+    onSessionId?: (sessionId: string) => void
+  ) => {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch("https://deltalens-back-production.up.railway.app/api/llm-stream/", {
+    const response = await fetch(`${API_BASE_URL}/api/llm-stream/`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         ...(token && { "Authorization": `Bearer ${token}` })
       },
-      body: JSON.stringify({ message: userMessage }),
+      body: JSON.stringify({ 
+        message: userMessage,
+        session_id: sessionId
+      }),
     });
 
     if (!response.ok) {
@@ -177,16 +186,81 @@ export const dashboardAPI = {
         const lines = buffer.split('\n');
         buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
         
-        // Send complete lines
-        if (lines.length > 0) {
-          onToken(lines.join('\n') + (lines.length > 0 ? '\n' : ''));
+        // Process each complete line
+        for (const line of lines) {
+          if (line.startsWith('SESSION_ID:')) {
+            const sessionId = line.replace('SESSION_ID:', '');
+            console.log('API: Parsed session ID:', sessionId);
+            if (onSessionId) {
+              onSessionId(sessionId);
+            }
+          } else if (line.trim()) {
+            onToken(line + '\n');
+          }
         }
       }
     }
     
     // Send any remaining buffer content
     if (buffer.trim()) {
-      onToken(buffer);
+      if (buffer.startsWith('SESSION_ID:')) {
+        const sessionId = buffer.replace('SESSION_ID:', '');
+        if (onSessionId) {
+          onSessionId(sessionId);
+        }
+      } else {
+        onToken(buffer);
+      }
     }
+  },
+};
+
+// Conversation API functions
+export interface ConversationSession {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+}
+
+export interface ConversationMessage {
+  id: string;
+  content: string;
+  is_user: boolean;
+  reasoning?: string;
+  tool_calls?: any;
+  tool_responses?: any;
+  created_at: string;
+}
+
+export interface ConversationDetail {
+  session: {
+    id: string;
+    title: string;
+    created_at: string;
+    updated_at: string;
+  };
+  messages: ConversationMessage[];
+}
+
+export const conversationAPI = {
+  getSessions: async (): Promise<{ sessions: ConversationSession[] }> => {
+    const response = await api.get('/api/conversations/');
+    return response.data;
+  },
+
+  createSession: async (): Promise<ConversationSession> => {
+    const response = await api.post('/api/conversations/');
+    return response.data;
+  },
+
+  getSessionDetail: async (sessionId: string): Promise<ConversationDetail> => {
+    const response = await api.get(`/api/conversations/${sessionId}/`);
+    return response.data;
+  },
+
+  deleteSession: async (sessionId: string): Promise<void> => {
+    await api.delete(`/api/conversations/${sessionId}/`);
   },
 };

@@ -31,8 +31,8 @@ const Index = () => {
       <div className="max-w-7xl mx-auto">
         <header className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Crypto Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {user?.first_name || user?.username}</p>
+            <h1 className="text-2xl font-bold mb-2">Welcome back, {user?.first_name || user?.username}</h1>
+            {/* <p className="text-muted-foreground">Welcome back, {user?.first_name || user?.username}</p> */}
           </div>
           
           <div className="flex items-center gap-4">
