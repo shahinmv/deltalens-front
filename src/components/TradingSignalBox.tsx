@@ -129,6 +129,13 @@ const TradingSignalBox = () => {
     return performances.find(p => p.signal_id === signalId);
   };
 
+  const formatStatusDisplay = (status: string) => {
+    if (status === "ACTIVE_PENDING_DATA") {
+      return "ACTIVE";
+    }
+    return status.replace('_', ' ');
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -200,7 +207,7 @@ const TradingSignalBox = () => {
                   </Badge>
                   {performance && (
                     <Badge className={getStatusColor(performance.status)}>
-                      {performance.status.replace('_', ' ')}
+                      {formatStatusDisplay(performance.status)}
                     </Badge>
                   )}
                 </div>
@@ -260,14 +267,14 @@ const TradingSignalBox = () => {
             <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
               <div>Updated: {formatTimestamp(signal.timestamp)}</div>
               <div className="flex gap-2">
-                <Badge variant={signal.is_active ? "default" : "secondary"} className="text-xs">
-                  {signal.is_active ? "Active" : "Expired"}
-                </Badge>
-                {performance && performance.hit_target && (
-                  <Badge className="bg-green-500 text-white text-xs">Target Hit</Badge>
-                )}
-                {performance && performance.hit_stop_loss && (
-                  <Badge className="bg-red-500 text-white text-xs">Stop Loss</Badge>
+                {performance ? (
+                  <Badge className={`${getStatusColor(performance.status)} text-xs`}>
+                    {formatStatusDisplay(performance.status)}
+                  </Badge>
+                ) : (
+                  <Badge variant={signal.is_active ? "default" : "secondary"} className="text-xs">
+                    {signal.is_active ? "Active" : "Expired"}
+                  </Badge>
                 )}
               </div>
             </div>

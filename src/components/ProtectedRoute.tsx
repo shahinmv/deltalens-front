@@ -50,7 +50,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <Button 
               onClick={logout} 
               variant="outline"
-              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               Sign Out
             </Button>
@@ -62,28 +61,27 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireMember && user?.role === 'non_member') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 dark:from-gray-900 dark:to-gray-800 px-4">
-        <Card className="w-full max-w-md shadow-lg border-2 border-orange-200 dark:border-orange-700">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-gray-900 dark:to-gray-800 px-4">
+        <Card className="w-full max-w-md shadow-lg border-2 border-blue-200 dark:border-blue-700">
           <CardHeader className="text-center bg-white dark:bg-gray-800 rounded-t-lg">
-            <CardTitle className="text-2xl font-bold text-orange-600 dark:text-orange-400">Membership Required</CardTitle>
+            <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Welcome to the Waitlist!</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-300">
-              You need member status to access the dashboard.
+              You've successfully joined our exclusive waitlist.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 bg-white dark:bg-gray-800 px-6 py-4 rounded-b-lg">
-            <Alert className="border-orange-300 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-600">
-              <AlertDescription className="text-orange-800 dark:text-orange-300">
-                Your account is currently set as "Non-Member". Please contact an administrator to upgrade your account to "Member" status to access the crypto dashboard and analytics.
+            <Alert className="border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600">
+              <AlertDescription className="text-blue-800 dark:text-blue-300">
+                Thank you for joining DeltaLens! You have been added to our waitlist and will be notified via email when it's time to become a member. We're working hard to bring you the best trading analytics experience.
               </AlertDescription>
             </Alert>
             <div className="text-center">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Current role: <span className="font-semibold capitalize text-gray-900 dark:text-white">{user?.role.replace('_', ' ')}</span>
+                We'll keep you updated on your membership status and notify you as soon as access becomes available.
               </p>
               <Button 
                 onClick={logout} 
-                variant="outline" 
-                className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                variant="outline"
               >
                 Sign Out
               </Button>

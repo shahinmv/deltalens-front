@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Admin from "./pages/Admin";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -26,15 +27,19 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route 
+        path="/" 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />} 
+      />
+      <Route 
         path="/login" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} 
       />
       <Route 
         path="/register" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} 
       />
       <Route
-        path="/"
+        path="/dashboard"
         element={
           <ProtectedRoute requireMember>
             <Index />

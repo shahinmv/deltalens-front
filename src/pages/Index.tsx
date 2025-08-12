@@ -85,6 +85,21 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <footer className="text-center py-6 px-6">
+        <p className="text-muted-foreground text-sm">
+          Made with ❤️ by{' '}
+          <a 
+            href="https://www.linkedin.com/company/algora-tech-solutions" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:text-primary/80 transition-colors"
+          >
+            Algora
+          </a>
+        </p>
+      </footer>
     </div>
   );
 };

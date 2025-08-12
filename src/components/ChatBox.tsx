@@ -104,47 +104,79 @@ const parseMarkdown = (text: string): JSX.Element => {
   };
 
   const parseInlineMarkdown = (text: string): JSX.Element => {
-    let result = text;
     const parts: (string | JSX.Element)[] = [];
-    let lastIndex = 0;
+    let currentIndex = 0;
+    let keyCounter = 0;
 
-    // Bold **text**
-    result = result.replace(/\*\*(.*?)\*\*/g, (match, content, offset) => {
-      parts.push(result.slice(lastIndex, offset));
-      parts.push(<strong key={offset}>{content}</strong>);
-      lastIndex = offset + match.length;
-      return '';
+    // Process all patterns in order of their appearance
+    const patterns = [
+      { regex: /\*\*(.*?)\*\*/g, render: (content: string, url?: string) => <strong key={keyCounter++}>{content}</strong> },
+      { regex: /\*(.*?)\*/g, render: (content: string, url?: string) => <em key={keyCounter++}>{content}</em> },
+      { regex: /`(.*?)`/g, render: (content: string, url?: string) => <code key={keyCounter++} className="bg-gray-200 px-1 py-0.5 rounded text-sm font-mono">{content}</code> },
+      { regex: /\[([^\]]+)\]\(([^)]+)\)/g, render: (content: string, url: string) => <a key={keyCounter++} href={url} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{content}</a> }
+    ];
+
+    // Find all matches across all patterns
+    const allMatches: Array<{
+      start: number;
+      end: number;
+      element: JSX.Element;
+    }> = [];
+
+    patterns.forEach(pattern => {
+      let match;
+      const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
+      while ((match = regex.exec(text)) !== null) {
+        const element = pattern.regex.source.includes('\\[')
+          ? pattern.render(match[1], match[2]) // Links have two capture groups
+          : pattern.render(match[1]);
+        
+        allMatches.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          element
+        });
+      }
     });
 
-    // Italic *text*
-    result = result.replace(/\*(.*?)\*/g, (match, content, offset) => {
-      parts.push(result.slice(lastIndex, offset));
-      parts.push(<em key={offset}>{content}</em>);
-      lastIndex = offset + match.length;
-      return '';
-    });
+    // Sort matches by start position
+    allMatches.sort((a, b) => a.start - b.start);
 
-    // Code `text`
-    result = result.replace(/`(.*?)`/g, (match, content, offset) => {
-      parts.push(result.slice(lastIndex, offset));
-      parts.push(<code key={offset} className="bg-gray-200 px-1 py-0.5 rounded text-sm font-mono">{content}</code>);
-      lastIndex = offset + match.length;
-      return '';
-    });
-
-    // Links [text](url)
-    result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url, offset) => {
-      parts.push(result.slice(lastIndex, offset));
-      parts.push(<a key={offset} href={url} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{text}</a>);
-      lastIndex = offset + match.length;
-      return '';
-    });
-
-    if (lastIndex < result.length) {
-      parts.push(result.slice(lastIndex));
+    // Remove overlapping matches (keep the first one)
+    const validMatches = [];
+    for (const match of allMatches) {
+      if (!validMatches.some(vm => 
+        (match.start >= vm.start && match.start < vm.end) ||
+        (match.end > vm.start && match.end <= vm.end) ||
+        (match.start <= vm.start && match.end >= vm.end)
+      )) {
+        validMatches.push(match);
+      }
     }
 
-    return <span>{parts.filter(part => part !== '')}</span>;
+    // Build the parts array
+    validMatches.forEach(match => {
+      // Add text before this match
+      if (currentIndex < match.start) {
+        const textBefore = text.slice(currentIndex, match.start);
+        if (textBefore) {
+          parts.push(textBefore);
+        }
+      }
+      // Add the matched element
+      parts.push(match.element);
+      currentIndex = match.end;
+    });
+
+    // Add remaining text
+    if (currentIndex < text.length) {
+      const remainingText = text.slice(currentIndex);
+      if (remainingText) {
+        parts.push(remainingText);
+      }
+    }
+
+    return <span>{parts}</span>;
   };
 
   lines.forEach((line, index) => {
@@ -348,7 +380,7 @@ const ChatBox = () => {
 
   return (
     <div className="glass-card p-6 rounded-lg h-[500px] flex flex-col animate-fade-in">
-      <h2 className="text-xl font-semibold mb-4">Bitcoin AI Chat</h2>
+      <h2 className="text-xl font-semibold mb-4">AI Chat</h2>
       
       <ScrollArea className="flex-1 mb-4">
         <div className="space-y-4">
