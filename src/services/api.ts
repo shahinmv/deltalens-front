@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://deltalens-back-production.up.railway.app';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -147,7 +147,7 @@ export const dashboardAPI = {
 
   streamLLMResponse: async (userMessage: string, onToken: (token: string) => void) => {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch("http://localhost:8000/api/llm-stream/", {
+    const response = await fetch("https://deltalens-back-production.up.railway.app/api/llm-stream/", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
