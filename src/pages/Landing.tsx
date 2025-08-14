@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BarChart3, ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
 
 const Landing = () => {
+  useEffect(() => {
+    document.title = 'DeltaLens - The Future of Trading Intelligence';
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 overflow-hidden flex flex-col">
       {/* Animated background elements */}

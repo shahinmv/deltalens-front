@@ -11,6 +11,9 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Admin = () => {
+  useEffect(() => {
+    document.title = 'Admin Panel - DeltaLens';
+  }, []);
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
